@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.List;
@@ -12,6 +13,10 @@ import java.util.List;
 public class SolveProblem {
 
 
+    private static final String DASH = "-";
+    private static final String DOT ="•";
+    private static final String SPACE = " ";
+    private static final String NONE = "";
     private static Map<String,String> coding = buildMap();
 
     // • -
@@ -63,7 +68,7 @@ public class SolveProblem {
         values.put("•-•-•-",".");
 
         values.put(" "," ");
-        values.put("","");
+        values.put(""," ");
         values.put("\n","\n");
         return values;
     }
@@ -77,19 +82,38 @@ public class SolveProblem {
 
         StringBuilder builder = new StringBuilder();
         List<Integer> firsts = new ArrayList<Integer>();
-        for(int i = 53; i< im.getHeight()-52; i+=3){
-            int last1 = -1;
-            for (int j =0; j< im.getWidth();j++){
-                if (new Color(im.getRGB(j,i)).equals(Color.BLACK) ){
-                    last1 = j;
+        int top = 10000, min = 10000, bot = -1, max = -1;
 
-                    //builder.append(first1);
+        for(int i = 0; i< im.getHeight(); i++){
+            for (int j = 0; j< im.getWidth(); j ++){
+                Color c1 = new Color(im.getRGB(j,i));
+                if(isBlack(c1)){
+                    if(i < top){
+                        top = i;
+                    }
+                    if (i > bot){
+                        bot = i;
+                    }
+                    if (j < min){
+                        min = j;
+                    }
+                    if( j > max){
+                        max = j;
+                    }
                 }
 
-                Color c = new Color(im.getRGB(j,i));
+            }
+        }
 
 
-                if(c.getRed() < 50 && c.getBlue() < 50 && c.getGreen() < 50){
+
+        for(int i = top; i< bot; i+=3){
+
+            for (int j =min; j<= max+1;j++){
+
+                Color c1 = new Color(im.getRGB(j,i));
+
+                if(isBlack(c1)){
                     builder.append(1);
                 }else{
                     builder.append(0);
@@ -97,73 +121,67 @@ public class SolveProblem {
 
 
             }
-            firsts.add(last1);
+
 
             builder.append("\n");
         }
 
-
-
-
+        //System.out.println(builder.toString());
 
 
         String message = builder.toString();
 
+        message = message.replace("0100",DOT);
 
-        message = message.replace("1110", "-");
+        message = message.replace("1110",DASH);
+        message = message.replace("00000000",SPACE);
 
-        message = message.replace("0100", "•");
+        message = message.replace("0000",NONE);
 
-        message = message.replace("00000000"," ");
+        message = message.replace("\n",SPACE);
 
-        message = message.replace("0","");
         //System.out.println(message);
-        StringBuilder processedMsg = new StringBuilder();
-        String[] wordSplitted = message.split("  ");
-        for(String s : wordSplitted){
-            String[] charSplit = s.split(" ");
-            for(String c : charSplit){
+        String val = message.replace(DOT,".");
 
-                processedMsg.append(coding.get(c));
-            }
-            processedMsg.append(" ");
+        val = val.replace(SPACE,"|");
+
+        //System.out.println(val);
+
+        String[] vals = message.split(" ");
+
+        StringBuilder firstProcess = new StringBuilder();
+
+        for(String s : vals){
+            //System.out.println("\""+s + "\" "+coding.get(s));
+            firstProcess.append(coding.get(s));
         }
 
-        String[] processedMsgSplitted = processedMsg.toString().split("      ");
 
-        StringBuilder newBuilder = new StringBuilder(processedMsgSplitted[0]);
 
-        for(int i = 1; i< processedMsgSplitted.length; i++){
-            String[] splitted = processedMsgSplitted[i].split(" ");
-            for(String s : splitted) {
-                newBuilder.append(hexTocmd
-                        String(s));
-            }
-            newBuilder.append(" ");
+        String[] secondProcess = firstProcess.toString().split("           ");
+
+        //System.out.println(secondProcess[0]);
+
+        String[] secondSplitted = secondProcess[1].split(" ");
+
+        StringBuilder secondVal = new StringBuilder();
+
+        for(String s : secondSplitted){
+            secondVal.append(hexToString(s));
         }
 
-        String mess = newBuilder.toString();
+        String[] lastSplit = secondVal.toString().split("\n\n\n");
 
-        String[] lastSplit = mess.split("\n\n\n");
+        //System.out.println(lastSplit[0]);
 
-
-
-        byte[] bytes = lastSplit[1].getBytes("UTF-8");
-        String encoded = Base64.getEncoder().encodeToString(bytes);
-
-
-        String output = new String(encoded);
-
-
-        for(byte val : lastSplit[0].getBytes()){
-            System.out.print( String.format("%8s", Integer.toBinaryString(val & 0xFF)).replace(' ', '0'));
-            System.out.print( " ");
-        }
+        System.out.println(lastSplit[1]);
 
     }
 
 
-    public static String hexToString(String hex){
+
+
+    public static String hexToString(String hex) throws UnsupportedEncodingException {
 
         StringBuilder sb = new StringBuilder();
         StringBuilder temp = new StringBuilder();
@@ -179,15 +197,29 @@ public class SolveProblem {
             sb.append((char)decimal);
 
             temp.append(decimal);
-        }/*
-        System.out.println(new String(sb.toString().getBytes(), Charset.forName("UTF-8")));
+        }
+        /*System.out.println(new String(sb.toString().getBytes(), Charset.forName("UTF-8")));
         System.out.println(new String(sb.toString().getBytes(), Charset.forName("ISO-8859-1")));
         System.out.println(new String(sb.toString().getBytes(), Charset.forName("cp1252")));
         System.out.println(new String(sb.toString().getBytes(), Charset.forName("US-ASCII")));
         System.out.println(new String(sb.toString().getBytes(), Charset.forName("Big5")));
         System.out.println(new String(sb.toString().getBytes(), Charset.forName("x-mswin-936")));
 */
-        return new String(sb.toString().getBytes());
+        return new String(sb.toString().getBytes("UTF-8"));
+    }
+
+
+    private static String grouper(String value){
+        StringBuilder s = new StringBuilder();
+
+            for(int i = 0; i< value.length(); i+=2){
+                s.append(value.charAt(i));
+            }
+        return s.toString();
+    }
+
+    private static boolean isBlack(Color c){
+        return c.getRed() < 100 && c.getBlue() < 100 && c.getGreen() < 100;
     }
 
 
